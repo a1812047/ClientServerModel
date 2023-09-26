@@ -11,3 +11,7 @@ ContentServer.class: ContentServer.java
 
 GETClient.class: GETClient.java
 	javac GETClient.java
+
+run_multiple_content_server:
+	java ContentServer localhost:4567
+	

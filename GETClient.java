@@ -30,6 +30,7 @@ class Pair{
         return value;
     }
 }
+
 public class GETClient {
     private Socket socket;
     private BufferedReader in;
@@ -38,11 +39,13 @@ public class GETClient {
     private Map<String, String> DataMap = new HashMap<String, String>();
     private String hostname;
     private int port;
+    private color Color;
+    
     
     GETClient(String hostname, int  port){
         this.hostname=hostname;
         this.port =port;
-        
+        Color =  new color();
         File file = new File("ConnectionData.txt");
         try  {
             
@@ -95,9 +98,7 @@ public class GETClient {
             FileWriter writer  = new FileWriter(file);
             while((message = in.readLine())!= null){
                 if(message.startsWith("status")){
-                    String green = "\u001B[32m";
-                    String reset = "\u001B[0m";
-                    System.out.println(green + message.split(":")[1]+reset);
+                    System.out.println(Color.green + message.split(":")[1]+Color.reset);
                 }else{
                     writer.append(message+"\n");
                     writer.flush();
@@ -182,14 +183,24 @@ public class GETClient {
     }
 
     public static void main(String [] args) throws IOException {
-        if(args.length <2  ){
-            throw new IOException("Provide both the hostname and  the  port number");
+        color Color= new color();
+        if(args.length <1  ){
+            
+            throw new IOException(Color.red+"\nProvide both the hostname and  the  port number\nThe format of the input should be serversIPaddressorname:portnumber\nFor e.g. if connecting to the localhost with port number 4567 type:"+Color.green+"java GETClient localhost:4567"+Color.reset);
         }
-        String hostname = args[0];
-        int port = Integer.parseInt(args[1]);
-        GETClient client = new GETClient(hostname, port);
-        client.getSYNCed();
-        client.GETDATA();
+        //
+        String [] input = args[0].split(":");
+        try {
+            String hostname = input[0];
+            int port = Integer.parseInt(input[1]);
+            GETClient client = new GETClient(hostname, port);
+            client.getSYNCed();
+            client.GETDATA();
+        } catch (Exception e) {
+            System.out.println(Color.red+"Check the input. For more info refere to the README guide:)"+Color.reset);
+            e.printStackTrace();
+        }
+        
         //client.printDataforAll();
     }
 

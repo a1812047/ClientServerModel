@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import javax.swing.text.AbstractDocument.Content;
 
 import java.util.Scanner;
 
@@ -110,7 +109,7 @@ public class ContentServer {
             
             
             //Send the  put request  message.
-            out.println("PUT /weatherData.json/t="+time+" HTTP/1.1"+"\n");
+            out.println("PUT /weatherData.json/t="+time+" HTTP/1.1");
             out.flush();
             
             
@@ -124,16 +123,18 @@ public class ContentServer {
                 //System.out.println("it is here now!!0");
                 out.flush();
             }
+            //sending an end of the put request. when a null is received by the Aggregation server.
             out.println("null");
             out.flush();
-            System.out.println("it is here now!!1");
+            
             //out.close();
             reader.close();
             while(!in.ready()){
 
             }
+            color Color = new color();
             String response= in.readLine();
-            System.out.println(response);
+            System.out.println(Color.yellow+response+Color.reset);
             
 
             
@@ -257,12 +258,10 @@ public class ContentServer {
      void closeEverything(){
         try {
             if(socket.isConnected()){
-                System.out.println("Everything is closed !!!");
+                // System.out.println("Everything is closed !!!");
                 socket.close();
             }
-            if(in.equals(null)){
-                System.out.println("Everything is closed here  already!!!");
-            }
+            
             in.close();
             out.close();
             
@@ -271,14 +270,30 @@ public class ContentServer {
         }
     }
 
-    public static void main(String[]args){
-        ContentServer cs  = new ContentServer("localhost", 4567);
-        cs.getSYNCed();
-        //String filename = "weatherData1.txt";
-        //cs.connectAndSendData(filename, "localhost", 4567);
-        for(Integer i  =  1; i <=3 ; i++){
-            String filename = "weatherData"+i.toString()+".txt";
-            cs.connectAndSendData(filename, "localhost", 4567);
+    public static void main(String[]args) throws InterruptedException, IOException{
+        color Color= new color();
+        if(args.length <1  ){
+            throw new IOException(Color.red+"\nProvide both the hostname and  the  port number\nThe format of the input should be serversIPaddressorname:portnumber\nFor e.g. if connecting to the localhost with port number 4567 type:"+Color.green+"java GETClient localhost:4567"+Color.reset);
         }
+        //
+        String [] input = args[0].split(":");
+        try {
+            String hostname = input[0];
+            int port = Integer.parseInt(input[1]);
+            ContentServer cs  = new ContentServer(hostname, port);
+            
+            //String filename = "weatherData1.txt";
+            //cs.connectAndSendData(filename, "localhost", 4567);
+            for(Integer i  =  1; i <=3 ; i++){
+                String filename = "weatherData"+i.toString()+".txt";
+                cs.getSYNCed();
+                cs.connectAndSendData(filename, "localhost", 4567);
+                Thread.sleep(5000);
+            }
+        } catch (Exception e) {
+            System.out.println(Color.red+"Check the input. For more info refere to the README guide:)"+Color.reset);
+            e.printStackTrace();
+        }
+        
     }
 }

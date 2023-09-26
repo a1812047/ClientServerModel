@@ -10,21 +10,21 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import javax.swing.plaf.basic.BasicInternalFrameTitlePane.SystemMenuBar;
-
 import java.util.PriorityQueue;
 import java.util.Scanner;
 import java.util.Stack;
 
 public class ClientHandler implements Runnable{
     public static PriorityQueue<Integer> PQ = new PriorityQueue<>();
-    public static String status = "201";
+    public static String status = "201"; // starts with 201 and sends 200 later.
+    public static  String illegalRequest_status = "400";
+    public static String noContent_Status = "204";
     public static int counter = 0;
     private Socket socket;
     private BufferedReader in;
     private PrintWriter out;
     private int ClientID;
+    private color Color= new color();
 
     ClientHandler(Socket  socket) throws IOException{
         this.socket = socket;
@@ -96,6 +96,8 @@ public class ClientHandler implements Runnable{
             }else if(meaning.startsWith("GET")){
                 //GETCLient request
                 if(status.equals("201")){
+                    out.println("status:"+noContent_Status+" I  have no COntent"+Color.reset);
+                    out.flush();
                     throw new IOException("there is  no data in my  DATABASE");
                 }
                 int order = Integer.parseInt(meaning.split(",")[1]);
@@ -105,14 +107,18 @@ public class ClientHandler implements Runnable{
             }else if(meaning.startsWith("PUT")){
                 //its a put request
                 Integer order = Integer.parseInt(meaning.split(",")[1]);
-                servePUT(order);
+                String currentStatus = servePUT(order);
 
                 // send status as ACK
                 //System.out.println("i am ready to send the status");
-                out.println("status:"+status);
+                out.println("status:"+currentStatus);
                 out.flush();
-                status = "200";
+                if(currentStatus.equals("201")){
+                    status = "200";
+                }
             }else{
+                out.println("status:"+illegalRequest_status);
+                out.flush();
                 throw new IOException(meaning);
             }
 
@@ -231,20 +237,26 @@ public class ClientHandler implements Runnable{
  
              writer.close(); 
         } catch (Exception e) {
-            // TODO: handle exception
+            e.printStackTrace();
         }
     }
-    void servePUT(Integer order){
+    String servePUT(Integer order){
         
         try {
-            while(!in.ready()){
-
-            }
+            
             String msg = in.readLine();
-            while(!msg.startsWith("{")){
+
+            
+            if(msg.isEmpty() || msg.equals(null)){
                 System.out.println(msg);
-                msg = in.readLine();
+                return noContent_Status;
             }
+            
+            if(!msg.startsWith("{")){
+                System.out.println(msg);
+                return "500-Internal Server Error";
+            }
+            
             //create a file called "order.json"
             File file= new File(order.toString()+".json");
             FileWriter writer = new FileWriter(file);
@@ -269,7 +281,7 @@ public class ClientHandler implements Runnable{
         } catch (Exception e) {
             e.printStackTrace();
         }       
-                
+        return  status;
     }
     
     void  sendGLOBAL_CLOCK_TIME(BufferedReader in,PrintWriter out) throws IOException{

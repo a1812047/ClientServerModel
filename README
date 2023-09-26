@@ -1,0 +1,118 @@
+To compile the file please use the makefile command "make"
+
+
+In the Submission I have three main components with 4 java files.. 
+    -AggregationServer.java, ClientHandler.java
+    -ContentServer.java
+    -GETClient.java
+
+Note to test we might need more files for the ContentServer.java to take in as input for the data. 
+I have currently set  three weatherData files local to the ContentServer to start with and to test.
+Testing for multiple ContentServers:
+    I have developed two  new folders called CS2 and CS3  with ContentServer Code
+    Please open two terminals, change directory to  CS2 and CS3 respectively.
+    Note in both these folders i have put the same data.
+    To test for different data, please cut and paste the new  data into  these files. 
+    To see  how the files are run look at the main method in the ContentServer.java file.
+Similarly for GETCLients I have GETCLIENT1 and GETCLIENT2. 
+
+
+
+
+Explanation:
+
+Aggregation Server: The manager or the service provider to the GETClient.
+    The server uses the concept of multiThreading.
+    The server understands any incoming request to connect as a ClientHandler object. 
+    Any client that wants to connect to this  server needs its hostname and the port number. 
+    The server waits  for an incoming request, saves it into a Socket object and hands it over to the CLientHandler. 
+    The ClientHandler object is started on a new thread.
+    Now, this Thread handles  the  incoming request. 
+    - This  helps  in many clients connecting at the same time and thus be able to be effecient in providing the  service. 
+
+ContentServer:
+    For each request the Content server starts by sending a "GET LamportClock HTTP/1.1" request, to receive  the current Lamport time or the Global Lamport Clock in response from the Aggregation Server.
+    Upon success, the Content Server is now ready to send the "PUT" request, it sends the PUT  request with the  current LamportTime at the ContentServer as "PUT /weatherData.json/t={currentLamportTime}  HTTP/1.1" //replace currentLamportTime in curlybrackets with its acutal value.
+    The Content server reads a text file converts them to the json, calls it "currentData.json" locally and sends this information next after the put msg.
+    Upon success/failure,  the content server receives the status code.Displays in the  terminal.
+    Repeats the  steps  above for  failures. 
+    Note: The Content Server needs text files as input(extra resources required) and converts this data to json.  
+
+    To follow  what happens  at  the Aggregation server , GOTO -> ' * Role of the ClientHandler for Handling PUT requests: '
+     
+GETClient:
+    Like the  ContentServer, the GETClient also sends the sync request first before
+    every GET request. 
+    Upon success,  it sends the GET request with the LamportTime to let the Aggregation Server know about  its  order. 
+
+ClientHandler: 
+    As the ClientHandler is  a different Thread for each  request, it implements Runnable and the method run. 
+    There is a global Priority  queue which maintains the order of the request by keeping track of the LamportClocks.
+    The clientHandler gets the "GET" or "PUT"  requests. Any other type of request is returned with response status: "400"
+
+* Role of the ClientHandler for Handling PUT requests:
+    It first  infers the meaning of the PUT request.  IF the LamportClock time is not  present , it returns status 400.
+    If it is a legal "PUT" request, the reader starts to read/receive the  incoming messages, implemented in the servePUT()  method.
+    It makes a new .json file with the name as the LamportClock sent by the PUT request.
+    For e.g.if the Put request was: "PUT /weatherData.json/t=20 HTTP/1.1", a file called
+    20.json is created.
+    To this new json file all the data sent by the Content Server is  copied. 
+    Upon success the servePUT() method returns 201 for the first PUT request and then 200  for any  further updates. 
+
+* Role of the ClientHandler for Handling GET requests:
+    There are two types of GET requests:
+        1. That serves both the ContentServer and the GETClient. For Sync messages(GET LamportClock )
+        2. One which only serves the  GETClient.
+
+    Again, after checking for the LamportClock to be present in the get request,for a legal "GET" request, the  ClientHandler's serveGET() method gets the  file from the global PriorityQueue, by  comparing the numbers less than the GETCLient's Lamport Time sent in  this GET  request. 
+    Now, it first copies the data of the weatherData.json local to the Aggregation Server and the ClientHandler into a Map with key = id of the stations and value are the rest of this data. 
+
+    For all the numbers less than GET request's Lamport time, it does the  same step as above for all those json files.Storing them into this map. 
+
+    Next it simply copies this data back to the weatherData.json  File, as the most current data. 
+
+    This data is now sent over the socket connection to the GETClient.  
+
+Notes on Lamport Clock Synchronisation:
+    Lamport Clocks will always give Partial Ordering, meaning the  events are concurrent.
+    We cannot say, if event A happens before event B,by just comparing their Lamport Clocks, even if "LC(A)<LC(B)".
+    
+    However,by sending a sync messages  it is assumed that a happens before relationship can be established for connections that spend the same time in the network before arriving at the socket. 
+
+    Therefore, to break ties, the Aggregation Server serves the Clients respective to their Lamport Clock and because there is only one Aggregation Server, it acheives consistency.
+
+Testing:
+    In the  testing phase most importantly:
+        Unit tests were done to test the functionality  of each method.
+        For  example to test the behaviour of the JSONparser,  a new test with valid and invalid json files was developed  to pass as input to the  JSONparser .
+        Note: this type  of functionality was required and done at each stage for each method to help develop regressive testing. 
+
+        Failure test simulations  were done to account for the network  failures. 
+        After printing out the  required error into the terminal, the Aggregation server restarts the connect method  when it catches the error as a recursive function.
+        When the  content server does not receive any status code for more than 30 seconds it can retry to resend the data to the Aggregation server and if the server is not available at this point in time, due to some reasons, the Content  server is notified else after  one more retry the data is now considererd to be redundant as more than 1  minutes have passed.  
+
+        When  the GETCLient or  the ContentServers receive any other statuscode other than 201 or 200, it means for the ContentServers to resend the  data and the GETClient to resend the request one more  time.
+
+        Testing the  edgecases:
+            - The design is  such  that two PUTs can be sent at concurrent times but can only be  received in a serialised manner by the Aggregation server. One  of them have  to wait to be served.
+            When both of them are served by different thread, the ClientHandler maintains  a  PQ, to preserve the order in which they should be served. 
+
+            To simulate these events, we should not send the sync request, and send the time in an unorganised manner to the server. 
+            Make sure to keep all the Clock times at  sent to be different. 
+
+            - Second edge case being what happens when several  GETClients  want to access the same file. 
+            Because when the ClientHandler actually manipulates the actual file "weatherData.json" only  when a get request arrives. We need to update the data here. A race condition  can occur, therefore, a lock using the synchronised method is established to keep consistency. TO  test this, I used three GET request sent concurrently just one after the other and one PUT each in between them. "GET",time = 1->"PUT", time = 2->"GET", time = 3->"PUT", time = 4->"GET", time = 5.  Notice, while the first '"GET",time = 1' only shows  what happened before time = 1 and '"GET",time = 3' waits for  the PUT request with timestamp 2 to finish and returns with the new update and so  on. 
+
+Need Feedback upon:
+    1. how much more testing is  required. I feel  like I have  tested everything in the code  and am satisfied with the behaviours. 
+    2. Lamport Clocks, please read the notes on lamport clocks above. Is  that okay to assume these?
+    
+    3. Lastly, how  much more is expected out of this assignment? DO you think i will receive HD for  this?  
+Note:
+    4. I have left the next three lines after the put and get request, for next week.
+    5. I have implemented my own parser but they are at different places.   
+    Thank you  for reading. Have a good day! 
+
+        
+
+
