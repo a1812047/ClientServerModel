@@ -107,14 +107,19 @@ public class ContentServer {
             //SEND THE time first to the agg server
             String time = LamportTime.toString();
             
+            File file = new File("currentData.json");
+            long bytes = file.length();
             
             //Send the  put request  message.
             out.println("PUT /weatherData.json/t="+time+" HTTP/1.1");
+            out.println("User-Agent: ATOMClient/1/0");
+            out.println("Content-Type: application/json");
+            out.println("Content-Length: "+ bytes);
             out.flush();
             
             
 
-            File file = new File("currentData.json");
+            
             Scanner reader = new Scanner(file);
             
             while(reader.hasNextLine()){
@@ -173,10 +178,14 @@ public class ContentServer {
                 String  S =  scanner.nextLine();
 
                 
-                if(S.contains("id")){
+                if(S.startsWith("id")){
                 // at first go to the line with first id. 
                     key = "id";
                     int index_of_id_value = S.indexOf(':');
+                    if(index_of_id_value == -1){
+                        key = "";
+                        continue;
+                    }
                     value = S.substring(index_of_id_value+1, S.length());
                     value = value.replaceAll(" ", "");
                     id = value;
@@ -205,7 +214,9 @@ public class ContentServer {
                 }else{
                     X = X.replaceAll(" ", "");
                     int index_of_colon = X.indexOf(':');
-                    
+                    if(index_of_colon == -1){
+                        continue;
+                    }
                     key = X.substring(0, index_of_colon);
                     value = X.substring(index_of_colon+1,X.length());
                     currentIDweatherdata.add(new Pair(key,value));
@@ -225,20 +236,20 @@ public class ContentServer {
                 entry  = iterator.next();
                 key =  entry.getKey();
                 List<Pair> thisId_sValue = entry.getValue();
-                writer.append('"'+key+'"'+":{\n");
+                writer.append("    "+'"'+key+'"'+":{\n");
                 int i = 0;
                 for(i = 0; i< thisId_sValue.size()-1; i++){
                     key = thisId_sValue.get(i).getKey();
                     value = thisId_sValue.get(i).getVal();
-                    writer.append('"'+key+'"'+":"+'"'+value+'"'+",\n");
+                    writer.append("    "+"    "+'"'+key+'"'+":"+'"'+value+'"'+",\n");
                 }
                 key = thisId_sValue.get(i).getKey();
                 value = thisId_sValue.get(i).getVal();
-                writer.append('"'+key+'"'+":"+'"'+value+'"'+"\n");
+                writer.append("    "+"    "+'"'+key+'"'+":"+'"'+value+'"'+"\n");
                 if(iterator.hasNext()){
-                    writer.append("},\n");
+                    writer.append("    "+"},\n");
                 }else{
-                    writer.append("}\n");
+                    writer.append("    "+"}\n");
                 }
                 
             }

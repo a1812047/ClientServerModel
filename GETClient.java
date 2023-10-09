@@ -122,7 +122,7 @@ public class GETClient {
             String value = "\n";
             while(reader.hasNextLine()){
                 String text = reader.nextLine();
-                
+                text = text.replaceAll(" ", "");
                 if(text.startsWith("}")){
                     if(stringStack.size() <3){
                         break;

@@ -19,6 +19,8 @@ public class ClientHandler implements Runnable{
     public static String status = "201"; // starts with 201 and sends 200 later.
     public static  String illegalRequest_status = "400";
     public static String noContent_Status = "204";
+    public static String internalServerError = "500 Internal Server Error";
+    
     public static int counter = 0;
     private Socket socket;
     private BufferedReader in;
@@ -96,17 +98,29 @@ public class ClientHandler implements Runnable{
             }else if(meaning.startsWith("GET")){
                 //GETCLient request
                 if(status.equals("201")){
-                    out.println("status:"+noContent_Status+" I  have no COntent"+Color.reset);
+                    out.println("status:"+noContent_Status+" I  have no COntent");
                     out.flush();
-                    throw new IOException("there is  no data in my  DATABASE");
+                    throw new IOException(Color.red+"there is  no data in my  DATABASE"+Color.reset);
                 }
                 int order = Integer.parseInt(meaning.split(",")[1]);
-                serveGET(order);
-                out.println("status:"+status);
+                String GETstatus = serveGET(order);
+                out.println("status:"+GETstatus);
                 out.flush();
             }else if(meaning.startsWith("PUT")){
                 //its a put request
                 Integer order = Integer.parseInt(meaning.split(",")[1]);
+                //print next three lines of the header
+                for (int i = 0;  i< 3;  i++){
+                    Input = in.readLine();
+                    System.out.println(Input);
+                }
+                long contentlength= Integer.parseInt(Input.split(":")[1].replaceAll(" ",""));
+                if(contentlength <= 10){
+                    out.println("status:"+illegalRequest_status);
+                    out.flush();
+                    throw new IOException(Color.red+"the data is  not valid, check the data before sending another request, please!"+Color.reset);
+                }
+                
                 String currentStatus = servePUT(order);
 
                 // send status as ACK
@@ -143,7 +157,7 @@ public class ClientHandler implements Runnable{
             String value = "";
             while(reader.hasNextLine()){
                 String text = reader.nextLine();
-                
+                text = text.replaceAll(" ","");
                 if(text.startsWith("}")){
                     if(stringStack.size() <3){
                         break;
@@ -172,12 +186,13 @@ public class ClientHandler implements Runnable{
             e.printStackTrace();
         }
     }
-    synchronized void serveGET(Integer order){
+    synchronized String serveGET(Integer order){
         try {
             //create a new PQ
             PriorityQueue<Integer> myPQ = new PriorityQueue<>();
             Map<String, String> myMap = new HashMap<>();
             synchronized(PQ){
+                
                 while(!PQ.isEmpty()  &&  PQ.peek() <= order){
                     myPQ.add(PQ.poll());
                 }
@@ -192,6 +207,9 @@ public class ClientHandler implements Runnable{
             //now we can just Update the weatherData.json file.
             updateDATA(myMap,"weatherData.json");
             File file= new File("weatherData.json") ;
+            if(!file.exists()){
+                return  internalServerError;
+            }
             Scanner reader = new Scanner(file);
             
             while(reader.hasNextLine()){
@@ -202,7 +220,9 @@ public class ClientHandler implements Runnable{
             
         } catch (Exception e) {
             e.printStackTrace();
+            return internalServerError;
         }
+        return "200";
     }
 
     void updateDATA(Map<String, String> myMap,String filename){
@@ -213,6 +233,9 @@ public class ClientHandler implements Runnable{
         try {
              //get the Map  and start storing in the json file
              File jsonFile = new File(filename);
+            //  if(jsonFile.exists() ==  false){
+            //      throw new FileNotFoundException(Color.yellow+"There might have been no data to update!"+Color.reset);
+            //  }
              FileWriter writer =  new FileWriter(jsonFile);
              writer.write("{\n");
              
