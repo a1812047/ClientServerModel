@@ -45,7 +45,7 @@ public class ContentServer {
     private Integer LamportTime;
     private String hostname;
     private int port;
-
+    private color Color = new color();
     ContentServer(String hostname, int port){
         this.hostname=hostname;
         this.port =port;
@@ -65,7 +65,7 @@ public class ContentServer {
         }
     }
 
-    void getSYNCed(){
+    void getSYNCed() throws InterruptedException{
         try {
             socket = new Socket(hostname, port);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -77,7 +77,16 @@ public class ContentServer {
 
             }
             String response =  in.readLine();
-            LamportTime = Integer.parseInt(response)+1;
+            //Failure check: Check if the server is not responding to the get request
+            if(response.startsWith("status")){
+                System.out.println(Color.red+response+Color.reset);
+                Thread.sleep(100);
+                getSYNCed();
+            }else{
+                LamportTime = Integer.parseInt(response)+1;
+            }
+            
+            
             
         } catch (IOException e) {
             e.printStackTrace();
@@ -109,14 +118,19 @@ public class ContentServer {
             //SEND THE time first to the agg server
             String time = LamportTime.toString();
             
+            File file = new File("currentData.json");
+            long bytes = file.length();
             
             //Send the  put request  message.
             out.println("PUT /weatherData.json/t="+time+" HTTP/1.1");
+            out.println("User-Agent: ATOMClient/1/0");
+            out.println("Content-Type: application/json");
+            out.println("Content-Length: "+ bytes);
             out.flush();
             
             
 
-            File file = new File("currentData.json");
+            
             Scanner reader = new Scanner(file);
             
             while(reader.hasNextLine()){
@@ -136,6 +150,7 @@ public class ContentServer {
             }
             color Color = new color();
             String response= in.readLine();
+            
             System.out.println(Color.yellow+response+Color.reset);
             
 
@@ -166,6 +181,9 @@ public class ContentServer {
         try {
 
             File file = new File(filename);
+            if(file.length() == 0){
+                throw new Error("the file is empty");
+            }
             Scanner scanner = new Scanner(file);
             String key = "",value =  "", id = "";
 
@@ -175,15 +193,23 @@ public class ContentServer {
                 String  S =  scanner.nextLine();
 
                 
-                if(S.contains("id")){
+                if(S.startsWith("id")){
                 // at first go to the line with first id. 
                     key = "id";
                     int index_of_id_value = S.indexOf(':');
+                    if(index_of_id_value == -1){
+                        key = "";
+                        continue;
+                    }
                     value = S.substring(index_of_id_value+1, S.length());
                     value = value.replaceAll(" ", "");
                     id = value;
                     break;
                 }
+            }
+            if(key == "" || id == ""){
+                scanner.close();
+                throw new Error("there is no valid data in the file to be sent!");
             }
 
             List<Pair> currentIDweatherdata =  new ArrayList<Pair>();
@@ -196,18 +222,28 @@ public class ContentServer {
                     continue;
                 }
                 if(X.startsWith("id")){
-                    weatherData.put(id,currentIDweatherdata);
+                    int index_of_id_value = X.indexOf(':');
+                    if(index_of_id_value <= -1){
+                       
+                        continue;
+                    }
+                    if(!id.isEmpty()){
+                        weatherData.put(id,currentIDweatherdata);
+                    }
                     currentIDweatherdata  = new ArrayList<Pair>();
                     key = "id";
-                    int index_of_id_value = X.indexOf(':');
+                    
                     value = X.substring(index_of_id_value+1, X.length());
                     value = value.replaceAll(" ", "");
+                    
                     id = value;
                     currentIDweatherdata.add(new Pair(key,value));
                 }else{
                     X = X.replaceAll(" ", "");
                     int index_of_colon = X.indexOf(':');
-                    
+                    if(index_of_colon == -1){
+                        continue;
+                    }
                     key = X.substring(0, index_of_colon);
                     value = X.substring(index_of_colon+1,X.length());
                     currentIDweatherdata.add(new Pair(key,value));
@@ -217,7 +253,11 @@ public class ContentServer {
             
             
             //get the Map  and start storing in the json file
+            
             File jsonFile = new File("currentData.json");
+            if(jsonFile.exists() == false){
+                jsonFile.createNewFile();
+            }
             FileWriter writer =  new FileWriter(jsonFile);
             writer.write("{\n");
             
@@ -227,20 +267,20 @@ public class ContentServer {
                 entry  = iterator.next();
                 key =  entry.getKey();
                 List<Pair> thisId_sValue = entry.getValue();
-                writer.append('"'+key+'"'+":{\n");
+                writer.append("    "+'"'+key+'"'+":{\n");
                 int i = 0;
                 for(i = 0; i< thisId_sValue.size()-1; i++){
                     key = thisId_sValue.get(i).getKey();
                     value = thisId_sValue.get(i).getVal();
-                    writer.append('"'+key+'"'+":"+'"'+value+'"'+",\n");
+                    writer.append("    "+"    "+'"'+key+'"'+":"+'"'+value+'"'+",\n");
                 }
                 key = thisId_sValue.get(i).getKey();
                 value = thisId_sValue.get(i).getVal();
-                writer.append('"'+key+'"'+":"+'"'+value+'"'+"\n");
+                writer.append("    "+"    "+'"'+key+'"'+":"+'"'+value+'"'+"\n");
                 if(iterator.hasNext()){
-                    writer.append("},\n");
+                    writer.append("    "+"},\n");
                 }else{
-                    writer.append("}\n");
+                    writer.append("    "+"}\n");
                 }
                 
             }
@@ -256,7 +296,7 @@ public class ContentServer {
         }
         
      }
-
+    
      void closeEverything(){
         try {
             if(socket.isConnected()){
@@ -290,7 +330,7 @@ public class ContentServer {
                 String filename = "weatherData"+i.toString()+".txt";
                 cs.getSYNCed();
                 cs.connectAndSendData(filename, "localhost", 4567);
-                Thread.sleep(5000);
+                Thread.sleep(100);
             }
         } catch (Exception e) {
             System.out.println(Color.red+"Check the input. For more info refere to the README guide:)"+Color.reset);

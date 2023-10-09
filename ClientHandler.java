@@ -87,7 +87,7 @@ public class ClientHandler implements Runnable{
 
             }
             Input = in.readLine();
-            System.out.println(Input);
+            System.out.println(Color.green+Input+Color.reset);
 
             String meaning  = dismantle(Input);
             //System.out.println("Meaning: "+meaning);
@@ -167,7 +167,7 @@ public class ClientHandler implements Runnable{
                     while(!Val.endsWith("{")){
                        
                         
-                        value = Val+"\n"+value;
+                        value = "    "+"    "+Val+"\n"+value;
                         Val = stringStack.pop();
                     }
                     key = Val.split(":")[0];
@@ -197,12 +197,16 @@ public class ClientHandler implements Runnable{
                     myPQ.add(PQ.poll());
                 }
             }
+            //Get the old data into myMap
             if(!myPQ.isEmpty()){
                 getDataIntoMymap(myMap, "weatherData.json");
             }
+            //now store all the new data into myMap
             while(!myPQ.isEmpty()){
                 String filename = myPQ.poll().toString()+".json";
                 getDataIntoMymap(myMap, filename);
+                File file = new File( filename);
+                file.delete();
             }
             //now we can just Update the weatherData.json file.
             updateDATA(myMap,"weatherData.json");
@@ -245,13 +249,13 @@ public class ClientHandler implements Runnable{
                  entry  = iterator.next();
                  String key = entry.getKey();
                  String thisId_sValue = entry.getValue();
-                 writer.append("\""+key+"\":{\n");
+                 writer.append("    "+"\""+key+"\":{\n");
                  writer.append(thisId_sValue);
                  
                  if(iterator.hasNext()){
-                     writer.append("},\n");
+                     writer.append("    "+"},\n");
                  }else{
-                     writer.append("}\n");
+                     writer.append("    "+"}\n");
                  }
                  
              }

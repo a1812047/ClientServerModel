@@ -43,7 +43,7 @@ public class ContentServer {
     private Integer LamportTime;
     private String hostname;
     private int port;
-
+    private color Color = new color();
     ContentServer(String hostname, int port){
         this.hostname=hostname;
         this.port =port;
@@ -63,7 +63,7 @@ public class ContentServer {
         }
     }
 
-    void getSYNCed(){
+    void getSYNCed() throws InterruptedException{
         try {
             socket = new Socket(hostname, port);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -75,7 +75,16 @@ public class ContentServer {
 
             }
             String response =  in.readLine();
-            LamportTime = Integer.parseInt(response)+1;
+            //Failure check: Check if the server is not responding to the get request
+            if(response.startsWith("status")){
+                System.out.println(Color.red+response+Color.reset);
+                Thread.sleep(100);
+                getSYNCed();
+            }else{
+                LamportTime = Integer.parseInt(response)+1;
+            }
+            
+            
             
         } catch (IOException e) {
             e.printStackTrace();
@@ -139,6 +148,7 @@ public class ContentServer {
             }
             color Color = new color();
             String response= in.readLine();
+            
             System.out.println(Color.yellow+response+Color.reset);
             
 
@@ -169,6 +179,9 @@ public class ContentServer {
         try {
 
             File file = new File(filename);
+            if(file.length() == 0){
+                throw new Error("the file is empty");
+            }
             Scanner scanner = new Scanner(file);
             String key = "",value =  "", id = "";
 
@@ -192,6 +205,10 @@ public class ContentServer {
                     break;
                 }
             }
+            if(key == "" || id == ""){
+                scanner.close();
+                throw new Error("there is no valid data in the file to be sent!");
+            }
 
             List<Pair> currentIDweatherdata =  new ArrayList<Pair>();
             currentIDweatherdata.add(new Pair(key,value));
@@ -203,12 +220,20 @@ public class ContentServer {
                     continue;
                 }
                 if(X.startsWith("id")){
-                    weatherData.put(id,currentIDweatherdata);
+                    int index_of_id_value = X.indexOf(':');
+                    if(index_of_id_value <= -1){
+                       
+                        continue;
+                    }
+                    if(!id.isEmpty()){
+                        weatherData.put(id,currentIDweatherdata);
+                    }
                     currentIDweatherdata  = new ArrayList<Pair>();
                     key = "id";
-                    int index_of_id_value = X.indexOf(':');
+                    
                     value = X.substring(index_of_id_value+1, X.length());
                     value = value.replaceAll(" ", "");
+                    
                     id = value;
                     currentIDweatherdata.add(new Pair(key,value));
                 }else{
@@ -226,7 +251,11 @@ public class ContentServer {
             
             
             //get the Map  and start storing in the json file
+            
             File jsonFile = new File("currentData.json");
+            if(jsonFile.exists() == false){
+                jsonFile.createNewFile();
+            }
             FileWriter writer =  new FileWriter(jsonFile);
             writer.write("{\n");
             
@@ -265,7 +294,7 @@ public class ContentServer {
         }
         
      }
-
+    
      void closeEverything(){
         try {
             if(socket.isConnected()){
@@ -299,7 +328,7 @@ public class ContentServer {
                 String filename = "weatherData"+i.toString()+".txt";
                 cs.getSYNCed();
                 cs.connectAndSendData(filename, "localhost", 4567);
-                Thread.sleep(5000);
+                Thread.sleep(100);
             }
         } catch (Exception e) {
             System.out.println(Color.red+"Check the input. For more info refere to the README guide:)"+Color.reset);

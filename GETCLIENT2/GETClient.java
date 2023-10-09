@@ -1,5 +1,6 @@
 package GETCLIENT2;
 
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileWriter;
@@ -11,6 +12,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Stack;
+
+
 
 class Pair{
     String key;
@@ -124,7 +127,7 @@ public class GETClient {
             String value = "\n";
             while(reader.hasNextLine()){
                 String text = reader.nextLine();
-                
+                text = text.replaceAll(" ", "");
                 if(text.startsWith("}")){
                     if(stringStack.size() <3){
                         break;

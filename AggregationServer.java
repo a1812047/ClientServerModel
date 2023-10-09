@@ -1,10 +1,16 @@
+import java.beans.Transient;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 
 public class AggregationServer {
    private ServerSocket serverSocket;
    private int port = 4567;
-
+   PrintWriter out;
+   private Socket clientSocket;
    String green = "\u001B[32m";
    String reset = "\u001B[0m";
    String red = "\u001B[31m";
@@ -31,19 +37,30 @@ public class AggregationServer {
     * have the name of the file less than the GETClient's LamportClock. Once the  compilation is done the file is  sent over the socket to the   client.  
     * The client can now display this json file as text.. 
     */
-
-   void connect() throws InterruptedException{
+   int i = 0;
+   void connect() throws InterruptedException, IOException{
       try {
          while(true){
-            Socket clientSocket = serverSocket.accept();
+            clientSocket = serverSocket.accept();
+            out = new PrintWriter(clientSocket.getOutputStream(),true);
+            //testing what happens when the client socket  fails here.
+            // if(i ==  2){
+            //    i = 3;
+            //    throw new IOException(red+"Crashing!! ");
+
+            // }
             ClientHandler client = new ClientHandler(clientSocket);
             Thread  t = new Thread(client);
             t.start();
+            i =  i+1;
          }
       } catch (Exception e) {
-         e.printStackTrace();
+         
+         out.println("status:500 Internal server Error, Try  in few seconds!");
+         out.close();
+         clientSocket.close();
          System.out.println("The server went down!!");
-         System.out.println("you may retry in few seconds!!");
+         System.out.println("you may retry in few seconds!!"+green);
          System.out.print("Server restarting");
          Thread.sleep(1000);
          System.out.print(".");
@@ -52,14 +69,14 @@ public class AggregationServer {
          Thread.sleep(1000);
          System.out.print(".");
          Thread.sleep(1000);
-         System.out.println(".");
+         System.out.println("."+reset);
          connect();
       }
    }
 
    
-
-   public static void main(String[]args) throws InterruptedException{
+   
+   public static void main(String[]args) throws InterruptedException, IOException{
       AggregationServer A  = new AggregationServer();
       Integer port  = null;
       if(args.length >0){
