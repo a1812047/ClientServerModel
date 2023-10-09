@@ -29,6 +29,7 @@ public class ClientHandler implements Runnable{
     private color Color= new color();
 
     ClientHandler(Socket  socket) throws IOException{
+
         this.socket = socket;
         in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         out = new  PrintWriter(socket.getOutputStream(), true);
@@ -37,6 +38,7 @@ public class ClientHandler implements Runnable{
         
     }
     void closeEverything(){
+
         try {
             if(socket.isConnected()){
                 socket.close();
@@ -148,7 +150,7 @@ public class ClientHandler implements Runnable{
         try {
             
             File file = new File(filename);
-            if(filename == "weatherData.json" && file.exists() == false){
+            if(filename == "weatherData.json" || file.exists() == false){
                 return;
             }
             Scanner  reader = new Scanner(file);
@@ -211,8 +213,8 @@ public class ClientHandler implements Runnable{
             //now we can just Update the weatherData.json file.
             updateDATA(myMap,"weatherData.json");
             File file= new File("weatherData.json") ;
-            if(!file.exists()){
-                return  internalServerError;
+            if(!file.exists() || file.length()==0){
+                return  noContent_Status;
             }
             Scanner reader = new Scanner(file);
             

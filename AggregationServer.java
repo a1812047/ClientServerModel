@@ -1,7 +1,4 @@
-import java.beans.Transient;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -15,10 +12,12 @@ public class AggregationServer {
    String reset = "\u001B[0m";
    String red = "\u001B[31m";
    String yellow = "\u001B[33m";
-   
+   private OldDataHandler oldDataHandler = new OldDataHandler();
    //allocates the port to the server  socket.
    public void startServer(int port){
       try {
+         Thread x = new Thread(oldDataHandler);
+         x.start();
          this.port = port;
          serverSocket = new ServerSocket(port);
       } catch (Exception e) {
