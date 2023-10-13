@@ -103,16 +103,45 @@ Testing:
             - Second edge case being what happens when several  GETClients  want to access the same file. 
             Because when the ClientHandler actually manipulates the actual file "weatherData.json" only  when a get request arrives. We need to update the data here. A race condition  can occur, therefore, a lock using the synchronised method is established to keep consistency. TO  test this, I used three GET request sent concurrently just one after the other and one PUT each in between them. "GET",time = 1->"PUT", time = 2->"GET", time = 3->"PUT", time = 4->"GET", time = 5.  Notice, while the first '"GET",time = 1' only shows  what happened before time = 1 and '"GET",time = 3' waits for  the PUT request with timestamp 2 to finish and returns with the new update and so  on. 
 
-Need Feedback upon:
+<!-- Need Feedback upon:
     1. how much more testing is  required. I feel  like I have  tested everything in the code  and am satisfied with the behaviours. 
     2. Lamport Clocks, please read the notes on lamport clocks above. Is  that okay to assume these?
     
     3. Lastly, how  much more is expected out of this assignment? DO you think i will receive HD for  this?  
 Note:
     4. I have left the next three lines after the put and get request, for next week.
-    5. I have implemented my own parser but they are at different places.   
+    5. I have implemented my own parser but they are at different places.    -->
     Thank you  for reading. Have a good day! 
 
-        
+Things that i have added to the testing:
+    Integrated testing:
+        Copy the enitre assignment or  the component of the assignment like ContentServer.java, GetClient into a seperate directory using makefile  and bashh scripts.
+        Type: "bash testingScript.bash" on the terminal and hit  enter  to see several of them in action together.
+        Concurrently run multiple clients, this way  by once starting the Aggregation server first. Then make several copies  of the assignment.
+        Open several terminals for each copy of the assignment.  STart the server once from one of the terminal and run the command make  testIntegrationWithBashScript.
+        What will this do:
+            1. run 10 contentSevers  and  getClient  from each terminal so that several copies can interact concurrently.
+            2. show  that the server encapsulates the idea of eliminating race conditions, deadlock. 
+            3. Failures might occur  when serveral clients concurrently load the server traffic.
+            4. Failure handling of these  scenarios include restarting the server  on its own,  
+                informing the content server to send the data  again for persistency. 
+    
+    Unit Testing has not also got a file for  you to test upon called TesttexttoJson,java that incorporates the unit test for converting the text file at the COntent  server to a json 
+    before sending it  across.
+    
+Other improvements:
 
+    OLDdataHandler:
+        this is  run  when the Aggregation server starts. 
+        When the data is too old or more than 30 seconds old, it is deleted.
+        this thread wakes up every 30s and compares when the file committed by a Content server was committed. 
+        As for each PUT  request we always  create a new file, the oldest data is eliminated  using the lastmodified attribute of the  filein the filesystem. 
+        if the  difference is too  long(more than30 seconds  in the assignment), it is deleted.
+    GETClient updates:
+        Every Client also stores the connection information in  a file , so  that  if there is an error the client retries for 2 more times before givingn up
+    ClientHandler bugs:
+        The Client Handler now prints the  content  type and content length.
+        The ClientHandler can now send appropriate errror codes responsible to suggest the cause of error. 
+        This  helps  the GetClient and the ContentServer to  act accordingly.  
+    
 

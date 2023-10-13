@@ -27,7 +27,7 @@ public class OldDataHandler implements Runnable{
                 long difference = currentTime - lastModifiedTime;
                 //System.out.println("difference is: "+difference);
                 if( difference >= 30*1000){
-                    System.out.println("Removing file: "+filenames[i]);
+                    //System.out.println("Removing file: "+filenames[i]);
                     thisFile.delete();
                 }
              }
