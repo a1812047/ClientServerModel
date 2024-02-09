@@ -1,3 +1,25 @@
+The project basically demonstrates how users are served based upon their requests and the time of the requests arrival. 
+
+Designing a weather reporter: 
+    the aggregation server takes the information from different content servers who save the data and send it to the aggregation server.
+    every heartbeat.
+
+    The aggregation server acts as an intermediate between different weather stations and the clients. Note: The client never connects with the weather stations.     
+    Only the aggregation server does. This is the client and server model where there is one master gathering all the information from its workers. 
+
+
+Problems: 
+
+    Many of them try to send the data and request the data. some are far away and can become useless at the time of arrival 
+    Many of the requests need to be served concurrently as they come in First come first served basis. 
+    Deciding which data to send for the current request. 
+    Managing the storage for past data. 
+    
+
+
+
+
+
 To compile the file please use the makefile command "make"
 
 
@@ -103,15 +125,8 @@ Testing:
             - Second edge case being what happens when several  GETClients  want to access the same file. 
             Because when the ClientHandler actually manipulates the actual file "weatherData.json" only  when a get request arrives. We need to update the data here. A race condition  can occur, therefore, a lock using the synchronised method is established to keep consistency. TO  test this, I used three GET request sent concurrently just one after the other and one PUT each in between them. "GET",time = 1->"PUT", time = 2->"GET", time = 3->"PUT", time = 4->"GET", time = 5.  Notice, while the first '"GET",time = 1' only shows  what happened before time = 1 and '"GET",time = 3' waits for  the PUT request with timestamp 2 to finish and returns with the new update and so  on. 
 
-<!-- Need Feedback upon:
-    1. how much more testing is  required. I feel  like I have  tested everything in the code  and am satisfied with the behaviours. 
-    2. Lamport Clocks, please read the notes on lamport clocks above. Is  that okay to assume these?
-    
-    3. Lastly, how  much more is expected out of this assignment? DO you think i will receive HD for  this?  
-Note:
-    4. I have left the next three lines after the put and get request, for next week.
-    5. I have implemented my own parser but they are at different places.    -->
-    Thank you  for reading. Have a good day! 
+
+EDIT:
 
 Things that i have added to the testing:
     Integrated testing:
