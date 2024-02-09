@@ -1,7 +1,7 @@
 To compile the file please use the makefile command "make"
 
 
-In the Submission I have three main components with 4 java files.. 
+I have three main components with 4 java files.. 
     -AggregationServer.java, ClientHandler.java
     -ContentServer.java
     -GETClient.java
